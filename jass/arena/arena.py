@@ -29,6 +29,7 @@ class Arena:
 
     The class uses some strategy and template methods patterns. Currently, this is only done for dealing cards.
 
+    Currently only compatible with the Schieber ruleset.
     """
 
     def __init__(self,

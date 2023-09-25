@@ -82,7 +82,7 @@ class GameObservation:
         # the points made in the tricks
         self.trick_points = np.zeros(shape=9, dtype=np.int32)
 
-        # the first player of the trick (derived)
+        # the first player of the tricks (derived)
         self.trick_first_player = np.full(shape=9, fill_value=-1, dtype=np.int32)
 
         # the current trick is a view onto self.trick

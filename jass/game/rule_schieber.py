@@ -8,6 +8,7 @@ from jass.game.const import color_of_card, color_masks, J_offset, higher_trump, 
     OBE_ABE, next_player, partner_player
 from jass.game.game_rule import GameRule
 from jass.game.game_state import GameState
+from jass.game.game_util import get_first_color_of_trick, num_cards_in_trick
 
 
 class RuleSchieber(GameRule):
@@ -94,6 +95,7 @@ class RuleSchieber(GameRule):
                         if color_of_card[current_trick[2]] == trump:
                             trump_played = True
                             if lowest_trump_played is not None:
+                                # TODO joel doesn't this fail to implement that Jack and Näl are higher than Ace, etc.?
                                 # 2 trumps were played, so we must compare
                                 if lowest_trump_played < current_trick[2]:
                                     # move from player 2 is lower (as its index value is higher)
@@ -159,26 +161,37 @@ class RuleSchieber(GameRule):
 
     def calc_winner(self, trick: np.ndarray, first_player: int, trump: int = -1) -> int:
         """
-        Calculate the winner of a completed trick.
+        Calculate the winner of a trick (if trick not complete, it's the winner up to now).
 
         Second implementation in an attempt to be more efficient, while the implementation is somewhat longer
         and more complicated it is about 3 times faster than the previous method.
 
         Precondition:
-            0 <= trick[i] <= 35, for i = 0..3
+            0 <= trick[i] <= 35, for i = 0..nr_cards_in_trick
+            Trick must at least contain one card (nr_cards_in_trick >= 1)
         Args:
-            trick: the completed trick
+            trick: the complete or incomplete trick
             first_player: the first player of the trick
-            trump: trump for the round
+            trump: trump for the round; required
         Returns:
-            the player who won this trick
+            the player who won this trick or is currently winning this trick
         """
-        color_of_first_card = color_of_card[trick[0]]
+        cards_in_trick = num_cards_in_trick(trick)
+        if cards_in_trick == 0:
+            raise ValueError("Cannot compute winner of empty trick")
+        elif cards_in_trick == 1:
+            return first_player
+        elif cards_in_trick > 4:
+            raise ValueError("Trick contains more than 4 cards")
+
+        assert 0 <= first_player <= 3, "first_player must be between 0 and 3"
+
+        color_of_first_card = get_first_color_of_trick(trick)
         if trump == UNE_UFE:
             # lowest card of first color wins
             winner = 0
             lowest_card = trick[0]
-            for i in range(1, 4):
+            for i in range(1, cards_in_trick):
                 # (lower card values have a higher card index)
                 if color_of_card[trick[i]] == color_of_first_card and trick[i] > lowest_card:
                     lowest_card = trick[i]
@@ -187,7 +200,7 @@ class RuleSchieber(GameRule):
             # highest card of first color wins
             winner = 0
             highest_card = trick[0]
-            for i in range(1, 4):
+            for i in range(1, cards_in_trick):
                 if color_of_card[trick[i]] == color_of_first_card and trick[i] < highest_card:
                     highest_card = trick[i]
                     winner = i
@@ -195,7 +208,7 @@ class RuleSchieber(GameRule):
             # trump mode and first card is trump: highest trump wins
             winner = 0
             highest_card = trick[0]
-            for i in range(1, 4):
+            for i in range(1, cards_in_trick):
                 # lower_trump[i,j] checks if j is a lower trump than i
                 if color_of_card[trick[i]] == trump and lower_trump[trick[i], highest_card]:
                     highest_card = trick[i]
@@ -207,7 +220,7 @@ class RuleSchieber(GameRule):
             highest_card = trick[0]
             trump_played = False
             trump_card = None
-            for i in range(1, 4):
+            for i in range(1, cards_in_trick):
                 if color_of_card[trick[i]] == trump:
                     if trump_played:
                         # second trump, check if it is higher

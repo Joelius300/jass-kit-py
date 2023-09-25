@@ -6,7 +6,14 @@ import numpy as np
 
 from typing import List
 
-from jass.game.const import card_ids, card_strings, TRUMP_FULL_OFFSET, PUSH_ALT, PUSH
+from jass.game.const import (
+    card_ids,
+    card_strings,
+    TRUMP_FULL_OFFSET,
+    PUSH_ALT,
+    PUSH,
+    color_of_card,
+)
 
 """
 Utilities
@@ -100,15 +107,9 @@ def count_colors(cards: np.ndarray) -> np.ndarray:
         cards: a one-hot encoded array of length 36 indicating the cards
 
     Returns:
-        a an array of length for containing the number of cards of colors D, H, S and C
+        an array of length 4 containing the number of cards of colors D, H, S and C
     """
-    result = np.zeros(4, np.int32)
-    cards.sum()
-    result[0] = (cards[0:9]).sum()
-    result[1] = (cards[9:18]).sum()
-    result[2] = (cards[18:27]).sum()
-    result[3] = (cards[27:36]).sum()
-    return result
+    return segment_by_color(cards).sum(axis=1)
 
 
 def deal_random_hand() -> np.ndarray:
@@ -142,3 +143,22 @@ def full_to_trump(full_action: int) -> int:
 
 def trump_to_full(action: int) -> int:
     return action + TRUMP_FULL_OFFSET
+
+
+def get_first_color_of_trick(trick):
+    return color_of_card[trick[0]]
+
+
+def segment_by_color(hand: np.array) -> np.array:
+    """
+    Segments one-hot encoded hand into the four colors. First element in the returned array
+    is an array of length 9 containing the one-hot encoded cards of Diamonds.
+    :param hand: 1d one-hot encoded hand (length=36)
+    :return: 2d array (dims=(4,9), one-hot encoded hands by color)
+    """
+    return np.reshape(hand, (4, 9))
+
+
+# this already exists somewhere basically and is passed to state etc. but I want to use it some other places too
+def num_cards_in_trick(trick: np.ndarray) -> int:
+    return np.sum(trick >= 0, dtype=int)
