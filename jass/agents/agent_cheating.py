@@ -2,6 +2,8 @@
 #
 # Created by Thomas Koller on 7/28/2020
 #
+from typing import Optional
+
 from jass.game.game_state import GameState
 
 
@@ -31,3 +33,7 @@ class AgentCheating:
             the card to play, int encoded as defined in jass.game.const
         """
         raise NotImplementedError
+
+    def setup(self, game_id: Optional[int] = None):
+        """Called once at the start of a game to set up anything game specific."""
+        pass

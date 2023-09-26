@@ -185,7 +185,7 @@ class Arena:
         elif not self._cheating_mode and not all([issubclass(type(x), Agent) for x in self._players]):
             raise AssertionError(f"All agents must be a subclass of {Agent} in non cheating mode.")
 
-    def play_game(self, dealer: int) -> None:
+    def play_game(self, dealer: int, game_id: int) -> None:
         """
         Play a complete game (36 cards).
         """
@@ -193,6 +193,9 @@ class Arena:
         self._game.init_from_cards(dealer=dealer, hands=self._dealing_card_strategy.deal_cards(
             game_nr=self._nr_games_played,
             total_nr_games=self._nr_games_to_play))
+
+        for p in self._players:
+            p.setup(game_id)
 
         # determine trump
         # ask first player
@@ -245,7 +248,7 @@ class Arena:
             self._file_generator.__enter__()
         dealer = NORTH
         for game_id in range(self._nr_games_to_play):
-            self.play_game(dealer=dealer)
+            self.play_game(dealer, game_id)
             if self.nr_games_played % self._print_every_x_games == 0:
                 points_to_write = int(self.nr_games_played / self._nr_games_to_play * 40)
                 spaces_to_write = 40 - points_to_write
