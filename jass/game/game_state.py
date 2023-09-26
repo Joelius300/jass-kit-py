@@ -2,6 +2,7 @@
 #
 # Created by Thomas Koller on 7/23/2020
 #
+import copy
 import logging
 import numpy as np
 
@@ -66,9 +67,6 @@ class GameState:
         # the first player of the trick (derived)
         self.trick_first_player = np.full(shape=9, fill_value=-1, dtype=np.int32)
 
-        # the current trick is a view onto self.trick
-        self.current_trick = self.tricks[0, :]
-
         # the number of completed tricks
         self.nr_tricks: int = 0
 
@@ -79,6 +77,27 @@ class GameState:
         self.nr_played_cards: int = 0
 
         self.points = np.zeros(shape=2, dtype=np.int32)
+
+        # initialize views onto other arrays. when cloning, these references need to be restored.
+        self.current_trick: np.ndarray
+        self._init_views()
+
+    def _init_views(self):
+        # the current trick is a view onto self.trick at the current incomplete trick
+        # when 0 tricks are completed, the first (i=0) is current.
+        # when 1 is completed, the second (i=1) is current.
+        # when 8 are completed, the last (i=9) is current.
+        # when 9 are completed (game over), there is no current one, it is None (aligns with state_from_complete_game)
+        self.current_trick = self.tricks[self.nr_tricks, :] if self.nr_tricks < 9 else None
+
+    def clone(self):
+        """
+        Clones the current game state and restores internal array views.
+        Use this instead of copy.deepcopy which breaks the reference.
+        """
+        cloned = copy.deepcopy(self)
+        cloned._init_views()
+        return cloned
 
     def __eq__(self, other: 'GameState') -> bool:
         if self.nr_played_cards == 36:

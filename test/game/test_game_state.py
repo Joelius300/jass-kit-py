@@ -18,7 +18,7 @@ class MyTestCase(unittest.TestCase):
     def test_copy(self):
         game_state = GameState()
         game_state_shallow = copy.copy(game_state)
-        game_state_deep = copy.deepcopy(game_state)
+        game_state_deep = game_state.clone()
 
         self.assertEqual(-1, game_state_shallow.dealer)
         self.assertEqual(-1, game_state_deep.dealer)
@@ -41,6 +41,32 @@ class MyTestCase(unittest.TestCase):
         # deep copy keeps value
         self.assertEqual(0, game_state_deep.hands[0, 0])
 
+    def test_clone_current_trick_view(self):
+        game_state = GameState()
+        game_state_deepcopy = copy.deepcopy(game_state)
+        game_state_clone = game_state.clone()
+
+        game_state.current_trick[0] = 42
+        game_state.tricks[0, 1] = 24
+        self.assertEqual(game_state.tricks[0, 0], 42)
+        self.assertEqual(game_state.current_trick[1], 24)
+
+        self.assertNotEqual(game_state_deepcopy.tricks[0, 0], 42)
+        self.assertNotEqual(game_state_deepcopy.current_trick[0], 42)
+        self.assertNotEqual(game_state_clone.tricks[0, 0], 42)
+        self.assertNotEqual(game_state_clone.current_trick[0], 42)
+
+        game_state_clone.current_trick[0] = 999
+        game_state_clone.tricks[0, 1] = 777
+        self.assertEqual(game_state_clone.tricks[0, 0], 999)
+        self.assertEqual(game_state_clone.current_trick[1], 777)
+
+        # Note: NotEquals! it doesn't work with deepcopy
+        game_state_deepcopy.current_trick[0] = 111
+        game_state_deepcopy.tricks[0, 1] = 222
+        self.assertNotEqual(game_state_deepcopy.tricks[0, 0], 111)
+        self.assertNotEqual(game_state_deepcopy.current_trick[1], 222)
+
     def test_eq(self):
         game_sim = GameSim(rule=RuleSchieber())
 
@@ -50,7 +76,7 @@ class MyTestCase(unittest.TestCase):
 
         game_state = game_sim.state
         game_state_shallow = copy.copy(game_state)
-        game_state_deep = copy.deepcopy(game_state)
+        game_state_deep = game_state.clone()
 
         self.assertTrue(game_state == game_state_shallow)
         self.assertTrue(game_state == game_state_deep)
@@ -124,20 +150,20 @@ class MyTestCase(unittest.TestCase):
         game.init_from_cards(hands=hands_initial, dealer=NORTH)
 
         # select trump randomly
-        state_trump_forehand = copy.deepcopy(game.state)
+        state_trump_forehand = game.state.clone()
         action = agent.action_trump(game.get_observation())
         game.action_trump(action)
 
         state_trump_rearhand = None
 
         if action == PUSH:
-            state_trump_rearhand = copy.deepcopy(game.state)
+            state_trump_rearhand = game.state.clone()
             action = agent.action_trump(game.get_observation())
             game.action_trump(action)
 
         states = []
         while not game.is_done():
-            states.append(copy.deepcopy(game.state))
+            states.append(game.state.clone())
             game.action_play_card(agent.action_play_card(game.get_observation()))
 
 

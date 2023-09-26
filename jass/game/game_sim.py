@@ -28,7 +28,7 @@ class GameSim:
         self._rule = rule
 
     def init_from_state(self, state: GameState):
-        self._state = copy.deepcopy(state)
+        self._state = state.clone()
 
     def init_from_cards(self, hands: np.array, dealer: int):
         self._state.dealer = dealer
