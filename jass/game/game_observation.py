@@ -128,6 +128,16 @@ class GameObservation:
     def __repr__(self):
         return str(self.__dict__)
 
+    def get_card_played(self, card_nr: int) -> int:
+        """
+        Get the card played at a certain time. Utility method.
+
+        Returns:
+            the card that was played as the card_nr card in the game
+        """
+        nr_trick, card_in_trick = divmod(card_nr, 4)
+        return int(self.tricks[nr_trick, card_in_trick])
+
     def to_json(self):
         """
         Generate a dict representation that can be converted to json. The format is the same than used in
