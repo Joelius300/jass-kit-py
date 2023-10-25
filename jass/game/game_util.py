@@ -159,6 +159,12 @@ def segment_by_color(hand: np.array) -> np.array:
     return np.reshape(hand, (4, 9))
 
 
-# this already exists somewhere basically and is passed to state etc. but I want to use it some other places too
+# this is done with divmod and is passed to state etc. but I want to use it some other places too
 def num_cards_in_trick(trick: np.ndarray) -> int:
+    """Returns the number of >=0 elements in an int-encoded array as -1 denotes the absence of a card."""
     return np.sum(trick >= 0, dtype=int)
+
+
+def num_cards_in_hand(hand: np.ndarray) -> int:
+    """Returns the number of >0 elements in a one-hot encoded array as 0 denotes the absence of a card."""
+    return np.sum(hand > 0, dtype=int)
