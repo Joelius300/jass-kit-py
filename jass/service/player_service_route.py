@@ -51,7 +51,7 @@ def action_play_card(player_name: str):
         request_dict = request.get_json()
         obs = GameObservation.from_json(request_dict)
     except Exception as e:
-        logging.warning('Error parsing request to GameObservation')
+        logging.warning('Error parsing request to GameObservation', exc_info=e)
         return jsonify(error=str(e)), HTTPStatus.BAD_REQUEST
 
     try:
@@ -60,7 +60,7 @@ def action_play_card(player_name: str):
         data = dict(card=card_strings[card])
         return jsonify(data), HTTPStatus.OK
     except Exception as e:
-        logging.warning('Error in action_play_card')
+        logging.warning('Error in action_play_card', exc_info=e)
         return jsonify(error=str(e)), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
@@ -90,7 +90,7 @@ def action_trump(player_name: str):
         request_dict = request.get_json()
         obs = GameObservation.from_json(request_dict)
     except Exception as e:
-        logging.warning('Error parsing request to GameObservation')
+        logging.warning('Error parsing request to GameObservation', exc_info=e)
         return jsonify(error=str(e)), HTTPStatus.BAD_REQUEST
 
     try:
@@ -98,7 +98,7 @@ def action_trump(player_name: str):
         data = dict(trump=trump)
         return jsonify(data), HTTPStatus.OK
     except Exception as e:
-        logging.warning('Error in action_trump: {}'.format(e))
+        logging.warning('Error in action_trump: {}'.format(e), exc_info=e)
         return jsonify(error=str(e)), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
@@ -134,7 +134,7 @@ def game_info(player_name: str):
         # currently we dont do anything with the data
         return jsonify(''), HTTPStatus.OK
     except Exception as e:
-        logging.warning('Error parsing request to GameObservation')
+        logging.warning('Error parsing request to GameObservation', exc_info=e)
         return jsonify(error=str(e)), HTTPStatus.BAD_REQUEST
 
 

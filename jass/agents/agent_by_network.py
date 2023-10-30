@@ -41,7 +41,7 @@ class AgentByNetwork(Agent):
             trump = int(response_data['trump'])
             return trump
         except Exception:
-            self._logger.error('No response from network player, using standin player')
+            self._logger.exception('No response from network player, using standin player')
             return self._standin_player.action_trump(obs)
 
     # noinspection PyBroadException
@@ -57,5 +57,5 @@ class AgentByNetwork(Agent):
             card_id = card_ids[card]
             return card_id
         except Exception:
-            self._logger.error('No response from network player, using standin player')
+            self._logger.exception('No response from network player, using standin player')
             return self._standin_player.action_play_card(obs)
