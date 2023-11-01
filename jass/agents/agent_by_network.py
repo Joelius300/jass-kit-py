@@ -38,10 +38,12 @@ class AgentByNetwork(Agent):
             response = requests.post(self._url_trump, json=data, timeout=self._timeout)
             response_data = response.json()
             self._logger.info('got response: {}'.format(response_data))
+            if 'error' in response_data:
+                raise Exception(response_data['error'])
             trump = int(response_data['trump'])
             return trump
         except Exception:
-            self._logger.exception('No response from network player, using standin player')
+            self._logger.exception('No/error response from network player, using standin player')
             return self._standin_player.action_trump(obs)
 
     # noinspection PyBroadException
@@ -53,9 +55,11 @@ class AgentByNetwork(Agent):
             response = requests.post(self._url_play, json=data, timeout=self._timeout)
             response_data = response.json()
             self._logger.info('got response: {}'.format(response_data))
+            if 'error' in response_data:
+                raise Exception(response_data['error'])
             card = response_data['card']
             card_id = card_ids[card]
             return card_id
         except Exception:
-            self._logger.exception('No response from network player, using standin player')
+            self._logger.exception('No/error response from network player, using standin player')
             return self._standin_player.action_play_card(obs)
