@@ -55,7 +55,7 @@ PUSH_ALT    = 6                         # type: int
 
 # Strings for trumps
 trump_strings_short = [
-    'D', 'H', 'S', 'C', 'O', 'U', '', '', '', '', 'P'
+    'D', 'H', 'S', 'C', 'O', 'U', 'P', '?', '?', '?', 'P'
 ]
 
 # German strings for trumps
