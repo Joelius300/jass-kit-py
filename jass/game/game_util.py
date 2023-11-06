@@ -112,7 +112,7 @@ def count_colors(cards: np.ndarray) -> np.ndarray:
     return segment_by_color(cards).sum(axis=1)
 
 
-def deal_random_hand() -> np.ndarray:
+def deal_random_hand(rng: np.random.Generator = None) -> np.ndarray:
     """
     Deal random cards for each hand.
 
@@ -121,7 +121,11 @@ def deal_random_hand() -> np.ndarray:
     """
     # shuffle card ids
     cards = np.arange(0, 36, dtype=np.int32)
-    np.random.shuffle(cards)
+    if rng:
+        rng.shuffle(cards)
+    else:
+        np.random.shuffle(cards)
+
     hands = np.zeros(shape=[4, 36], dtype=np.int32)
 
     # convert to one hot encoded
