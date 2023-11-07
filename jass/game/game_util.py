@@ -146,6 +146,8 @@ def full_to_trump(full_action: int) -> int:
 
 
 def trump_to_full(action: int) -> int:
+    if action == PUSH:
+        action = PUSH_ALT
     return action + TRUMP_FULL_OFFSET
 
 
