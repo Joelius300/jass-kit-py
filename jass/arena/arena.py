@@ -287,6 +287,8 @@ class Arena:
 
         return self.play_games(self._nr_games_to_play, reset)
 
+    # in the future, should use tqdm and proper logging instead of sys.stdout
+
     def play_games(self, n_games: int, reset=True) -> int:
         """Play a set number of games and return the overall winner."""
         for n_played, team_scores, best_team in self.play_games_indefinitely(reset):
@@ -299,7 +301,8 @@ class Arena:
                                                                           n_games))
             if n_played >= n_games:
                 sys.stdout.write('\n')
-                sys.stdout.write(f"Team {best_team} has won with {team_scores[best_team]} against {team_scores[best_team - 1]}")
+                sys.stdout.write(f"Team {best_team} has won with {team_scores[best_team]} "
+                                 f"against {team_scores[best_team - 1]}\n")
                 return best_team
 
     def play_until_point_threshold(self, point_threshold: int, reset=True) -> int:
@@ -311,7 +314,7 @@ class Arena:
             if n_played % self._print_every_x_games == 0:
                 n_dots = int(best_score / point_threshold * PROG_BAR_LEN)
                 n_spaces = PROG_BAR_LEN - n_dots
-                # suboptimal progress bar, can jump around and is only kinda accurate when
+                # suboptimal progress bar, non-linear and is only kinda accurate when
                 # the players have a somewhat consistent strength.
                 sys.stdout.write("\r[{}{}] {:5}/{:5} current winner ({})".format('.' * n_dots,
                                                                                  ' ' * n_spaces,
@@ -322,5 +325,5 @@ class Arena:
             if team_scores[best_team] >= point_threshold:
                 sys.stdout.write('\n')
                 sys.stdout.write(f"Team {best_team} has won with {team_scores[best_team]} against "
-                                 f"{team_scores[best_team - 1]} after {self.nr_games_played} games.")
+                                 f"{team_scores[best_team - 1]} after {self.nr_games_played} games.\n")
                 return best_team
