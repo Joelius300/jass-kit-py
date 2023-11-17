@@ -292,7 +292,7 @@ class Arena:
     def play_games(self, n_games: int, reset=True) -> int:
         """Play a set number of games and return the overall winner."""
         for n_played, team_scores, best_team in self.play_games_indefinitely(reset):
-            if n_played % self._print_every_x_games == 0:
+            if self._print_every_x_games > 0 and n_played % self._print_every_x_games == 0:
                 n_dots = int(n_played / n_games * PROG_BAR_LEN)
                 n_spaces = PROG_BAR_LEN - n_dots
                 sys.stdout.write("\r[{}{}] {:4}/{:4} games played".format('.' * n_dots,
@@ -311,7 +311,7 @@ class Arena:
         """
         for n_played, team_scores, best_team in self.play_games_indefinitely(reset):
             best_score = team_scores[best_team]
-            if n_played % self._print_every_x_games == 0:
+            if self._print_every_x_games > 0 and n_played % self._print_every_x_games == 0:
                 n_dots = int(best_score / point_threshold * PROG_BAR_LEN)
                 n_spaces = PROG_BAR_LEN - n_dots
                 # suboptimal progress bar, non-linear and is only kinda accurate when
