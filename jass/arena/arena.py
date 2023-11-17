@@ -20,6 +20,8 @@ from jass.game.rule_schieber import RuleSchieber
 from jass.logs.game_log_entry import GameLogEntry
 from jass.logs.log_entry_file_generator import LogEntryFileGenerator
 
+PROG_BAR_LEN = 40
+
 
 class Arena:
     """
@@ -45,7 +47,7 @@ class Arena:
             dealing_card_strategy: strategy for dealing cards
             print_every_x_games: print results every x games
             check_move_validity: True if moves from the agents should be checked for validity
-            save_filename: True if results should be save
+            save_filename: True if results should be saved
             cheating_mode: True if agents will receive the full game state
         """
         self._cheating_mode = cheating_mode
@@ -140,11 +142,11 @@ class Arena:
 
     @property
     def points_team_0(self):
-        return self._points_team_0
+        return self._points_team_0[:self._nr_games_played]
 
     @property
     def points_team_1(self):
-        return self._points_team_1
+        return self._points_team_1[:self._nr_games_played]
 
     def get_observation(self) -> GameObservation:
         """
@@ -191,9 +193,9 @@ class Arena:
         self._points_team_1 = np.zeros(self._initial_points_array_size)
         self._nr_games_played = 0
 
-    def play_game(self, dealer: int, game_id: int) -> None:
+    def play_game(self, dealer: int, game_id: int) -> np.ndarray:
         """
-        Play one complete game (36 cards).
+        Play one complete game (36 cards) and return the points from it.
         """
         # init game
         self._game.init_from_cards(dealer=dealer, hands=self._dealing_card_strategy.deal_cards(
@@ -240,75 +242,85 @@ class Arena:
 
         self._nr_games_played += 1
 
+        return self._game.state.points
+
     def save_game(self):
         """
         Save the current game if enabled.
-        Returns:
-
         """
         if self._save_games:
             entry = GameLogEntry(game=self._game.state, date=datetime.now(), player_ids=self._player_ids)
             self._file_generator.add_entry(entry.to_json())
 
-    def play_all_games(self):
+    def play_games_indefinitely(self, reset=True):
+        """
+        Play games indefinitely and yield after each one with the current number of games played, the team scores
+        and the team with currently the most points. Optionally reset before starting playing.
+        """
+        if reset:
+            self.reset()
+
+        total_points = np.array(self.points_team_0.sum(), self.points_team_1.sum())
+        try:
+            if self._save_games:
+                self._file_generator.__enter__()
+            dealer = NORTH
+            for game_id in range(sys.maxsize):
+                round_points = self.play_game(dealer, game_id)
+                total_points = total_points + round_points  # no need to sum everything all the time
+
+                best_team = int(total_points.argmax())
+
+                yield self.nr_games_played, total_points, best_team
+
+                dealer = next_player[dealer]
+        finally:
+            if self._save_games:
+                self._file_generator.__exit__(None, None, None)
+
+    def play_all_games(self, reset=True):
         """
         Play the number of games specified at construction and return the overall winner.
         """
         if self._nr_games_to_play <= 0:
             raise ValueError("Must specify a positive number of games, or use `play_games` instead.")
 
-        return self.play_games(self._nr_games_to_play)
+        return self.play_games(self._nr_games_to_play, reset)
 
-    def play_games(self, n_games: int) -> int:
+    def play_games(self, n_games: int, reset=True) -> int:
         """Play a set number of games and return the overall winner."""
-        try:
-            if self._save_games:
-                self._file_generator.__enter__()
-            dealer = NORTH
-            for game_id in range(n_games):
-                self.play_game(dealer, game_id)
-                if self.nr_games_played % self._print_every_x_games == 0:
-                    points_to_write = int(self.nr_games_played / n_games * 40)
-                    spaces_to_write = 40 - points_to_write
-                    sys.stdout.write("\r[{}{}] {:4}/{:4} games played".format('.' * points_to_write,
-                                                                              ' ' * spaces_to_write,
-                                                                              self.nr_games_played,
-                                                                              n_games))
-                dealer = next_player[dealer]
-            sys.stdout.write('\n')
+        for n_played, team_scores, best_team in self.play_games_indefinitely(reset):
+            if n_played % self._print_every_x_games == 0:
+                n_dots = int(n_played / n_games * PROG_BAR_LEN)
+                n_spaces = PROG_BAR_LEN - n_dots
+                sys.stdout.write("\r[{}{}] {:4}/{:4} games played".format('.' * n_dots,
+                                                                          ' ' * n_spaces,
+                                                                          n_played,
+                                                                          n_games))
+            if n_played >= n_games:
+                sys.stdout.write('\n')
+                sys.stdout.write(f"Team {best_team} has won with {team_scores[best_team]} against {team_scores[best_team - 1]}")
+                return best_team
 
-            team_scores = np.array(self.points_team_0.sum(), self.points_team_1.sum())
-            best_team = int(team_scores.argmax())
-            sys.stdout.write(f"Team {best_team} has won with {team_scores[best_team]} against {team_scores[best_team - 1]}")
-            return best_team
-        finally:
-            if self._save_games:
-                self._file_generator.__exit__(None, None, None)
+    def play_until_point_threshold(self, point_threshold: int, reset=True) -> int:
+        """
+        Play until one team reaches the point threshold and return which team won (reached the threshold first).
+        """
+        for n_played, team_scores, best_team in self.play_games_indefinitely(reset):
+            best_score = team_scores[best_team]
+            if n_played % self._print_every_x_games == 0:
+                n_dots = int(best_score / point_threshold * PROG_BAR_LEN)
+                n_spaces = PROG_BAR_LEN - n_dots
+                # suboptimal progress bar, can jump around and is only kinda accurate when
+                # the players have a somewhat consistent strength.
+                sys.stdout.write("\r[{}{}] {:5}/{:5} current winner ({})".format('.' * n_dots,
+                                                                                 ' ' * n_spaces,
+                                                                                 best_score,
+                                                                                 point_threshold,
+                                                                                 best_team))
 
-    def play_until_point_threshold(self, point_threshold: int) -> int:
-        """
-        Play until one team surpasses the point threshold and return which team won (surpassed the threshold first).
-        """
-        try:
-            if self._save_games:
-                self._file_generator.__enter__()
-            dealer = NORTH
-            for game_id in range(sys.maxsize):
-                self.play_game(dealer, game_id)
-                if self.nr_games_played % self._print_every_x_games == 0:
-                    points_to_write = int(self.nr_games_played / self._nr_games_to_play * 40)
-                    spaces_to_write = 40 - points_to_write
-                    sys.stdout.write("\r[{}{}] {:4}/{:4} games played".format('.' * points_to_write,
-                                                                              ' ' * spaces_to_write,
-                                                                              self.nr_games_played,
-                                                                              self._nr_games_to_play))
-                dealer = next_player[dealer]
-                team_scores = np.array(self.points_team_0.sum(), self.points_team_1.sum())
-                best_team = int(team_scores.argmax())
-                if team_scores[best_team] > point_threshold:
-                    sys.stdout.write('\n')
-                    sys.stdout.write(f"Team {best_team} has won with {team_scores[best_team]} against {team_scores[best_team - 1]}")
-                    return best_team
-        finally:
-            if self._save_games:
-                self._file_generator.__exit__(None, None, None)
+            if team_scores[best_team] >= point_threshold:
+                sys.stdout.write('\n')
+                sys.stdout.write(f"Team {best_team} has won with {team_scores[best_team]} against "
+                                 f"{team_scores[best_team - 1]} after {self.nr_games_played} games.")
+                return best_team
