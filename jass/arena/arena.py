@@ -4,6 +4,7 @@
 #
 import logging
 import sys
+import time
 from datetime import datetime
 from typing import List, Union
 
@@ -40,7 +41,8 @@ class Arena:
                  print_every_x_games: int = 5,
                  check_move_validity=True,
                  save_filename=None,
-                 cheating_mode=False):
+                 cheating_mode=False,
+                 print_timings=False):
         """
         Args:
             nr_games_to_play: number of games to be played in the arena (deprecated, use play_games instead)
@@ -56,6 +58,8 @@ class Arena:
         self._nr_games_played = 0
         self._nr_games_to_play = nr_games_to_play
         self._initial_points_array_size = max(nr_games_to_play, 128)
+
+        self.print_timings = print_timings
 
         # the strategies
         if dealing_card_strategy is None:
@@ -207,14 +211,22 @@ class Arena:
 
         # determine trump
         # ask first player
+        start = time.time()
         trump_action = self._players[self._game.state.player].action_trump(self.get_agent_observation())
+        end = time.time()
+        if self.print_timings:
+            print(f"Got trump from player {self._game.state.player} in {end-start} seconds.")
         if trump_action < DIAMONDS or (trump_action > MAX_TRUMP and trump_action != PUSH):
             self._logger.error('Illegal trump (' + str(trump_action) + ') selected')
             raise RuntimeError('Illegal trump (' + str(trump_action) + ') selected')
         self._game.action_trump(trump_action)
         if trump_action == PUSH:
             # ask second player
+            start = time.time()
             trump_action = self._players[self._game.state.player].action_trump(self.get_agent_observation())
+            end = time.time()
+            if self.print_timings:
+                print(f"Got trump from player {self._game.state.player} in {end-start} seconds.")
             if trump_action < DIAMONDS or trump_action > MAX_TRUMP:
                 self._logger.error('Illegal trump (' + str(trump_action) + ') selected')
                 raise RuntimeError('Illegal trump (' + str(trump_action) + ') selected')
@@ -223,7 +235,11 @@ class Arena:
         # play cards
         for cards in range(36):
             obs = self.get_agent_observation()
+            start = time.time()
             card_action = self._players[self._game.state.player].action_play_card(obs)
+            end = time.time()
+            if self.print_timings:
+                print(f"Got card from player {self._game.state.player} in {end-start} seconds.")
             if self._check_moves_validity:
                 assert card_action in np.flatnonzero(self._game.rule.get_valid_actions_from_state(obs)) \
                     if self._cheating_mode else \
